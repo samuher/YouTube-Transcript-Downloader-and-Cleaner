@@ -80,6 +80,8 @@ def descargar_transcripciones_canal(url_canal, carpeta_destino=None, idiomas=('e
         # Evita reprocesar el mismo vídeo si aparece en varias playlists del canal,
         # y permite reanudar sin repetir descargas si se corta la ejecución.
         'download_archive': os.path.join(carpeta_destino, 'archivo_descargados.txt'),
+        'quiet': True,        # Oculta el progreso detallado y mensajes informativos
+        'no_warnings': True,  # Oculta los mensajes amarillos de WARNING
     }
 
     print(f"Canal: {url_canal}")
