@@ -47,6 +47,7 @@ def descargar_transcripciones_canal(url_canal, carpeta_destino="transcripciones"
         'subtitlesformat': 'vtt',
         'outtmpl': f'{carpeta_destino}/%(uploader)s - %(upload_date)s - %(title)s.%(ext)s',
         'ignoreerrors': True,
+        'match_filter': yt_dlp.utils.match_filter_func("duration > 300"), # No descargamos los shorts
     }
 
     print(f"Iniciando extracción del canal: {url_canal}")
