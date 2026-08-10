@@ -77,13 +77,9 @@ def descargar_transcripciones_canal(url_canal, carpeta_destino=None, idiomas=('e
         'subtitlesformat': 'vtt',
         'outtmpl': f'{carpeta_destino}/%(uploader)s - %(upload_date)s - %(title)s.%(ext)s',
         'ignoreerrors': True,
-<<<<<<< HEAD
-        'match_filter': yt_dlp.utils.match_filter_func("duration > 300"), # No descargamos los shorts
-=======
         # Evita reprocesar el mismo vídeo si aparece en varias playlists del canal,
         # y permite reanudar sin repetir descargas si se corta la ejecución.
         'download_archive': os.path.join(carpeta_destino, 'archivo_descargados.txt'),
->>>>>>> dac8465 (Cambios importantes en las transcripciones asi como consolidador si utilizas Notebook)
     }
 
     print(f"Canal: {url_canal}")

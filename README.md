@@ -13,13 +13,8 @@ Script en Python que descarga automáticamente las transcripciones (subtítulos)
 - [1. Instalar Python](#1-instalar-python)
 - [2. Descargar el proyecto](#2-descargar-el-proyecto)
 - [3. Instalar las dependencias](#3-instalar-las-dependencias)
-<<<<<<< HEAD
-- [4. Configurar el canal a descargar](#4-configurar-el-canal-a-descargar)
-- [5. Ejecutar el script](#5-ejecutar-el-script)
-=======
 - [4. Descargar las transcripciones de un canal](#4-descargar-las-transcripciones-de-un-canal)
 - [5. Consolidar las transcripciones para NotebookLM](#5-consolidar-las-transcripciones-para-notebooklm)
->>>>>>> dac8465 (Cambios importantes en las transcripciones asi como consolidador si utilizas Notebook)
 - [6. Personalizar el proyecto](#6-personalizar-el-proyecto)
 - [Alternativas sin instalar nada: Google Colab / Jupyter](#-alternativas-sin-instalar-nada-google-colab--jupyter)
 - [Notas y problemas comunes](#-notas-y-problemas-comunes)
@@ -102,25 +97,6 @@ Si `pip` no funciona, prueba con `pip3` o `python -m pip install -r requirements
 
 ---
 
-<<<<<<< HEAD
-## 4. Configurar el canal a descargar
-
-Abre `descargar_transcripciones.py` y busca estas dos líneas al final del archivo:
-
-```python
-url_del_canal = "https://www.youtube.com/@CanalDeEjemplo"
-ruta_de_guardado = r"transcripciones/CanalDeEjemplo"
-```
-
-- **`url_del_canal`**: sustitúyela por la URL del canal que quieras (por ejemplo `https://www.youtube.com/@NombreDelCanal` o `https://www.youtube.com/channel/UCxxxxxx`).
-- **`ruta_de_guardado`**: es el nombre de la carpeta donde se guardarán los `.txt`. Puedes ponerle el nombre que quieras.
-
----
-
-## 5. Ejecutar el script
-
-Desde la carpeta del proyecto:
-=======
 ## 4. Descargar las transcripciones de un canal
 
 Tienes dos formas de ejecutarlo — elige la que prefieras.
@@ -128,17 +104,11 @@ Tienes dos formas de ejecutarlo — elige la que prefieras.
 ### Opción A: modo interactivo (recomendado si no te manejas con la terminal)
 
 Desde la carpeta del proyecto, ejecuta:
->>>>>>> dac8465 (Cambios importantes en las transcripciones asi como consolidador si utilizas Notebook)
 
 ```bash
 python descargar_transcripciones.py
 ```
 
-<<<<<<< HEAD
-(o `python3 descargar_transcripciones.py` según tu sistema)
-
-El script irá mostrando el progreso en la terminal y, al terminar, encontrarás los archivos `.txt` limpios dentro de la carpeta que indicaste en `ruta_de_guardado`.
-=======
 El script te irá preguntando:
 1. La URL del canal (por ejemplo `https://www.youtube.com/@NombreDelCanal`)
 2. La carpeta donde guardar los `.txt` (pulsa Enter para que la genere automáticamente a partir del nombre del canal)
@@ -188,20 +158,11 @@ python Consolidador.py -o "transcripciones/MiCanal" -d "notebooklm_listo" -l 450
 | `-n`, `--nombre` | Prefijo para nombrar los tomos generados | No (se genera a partir de la carpeta de origen) |
 
 Al terminar, el script avisa si el número de tomos generados supera el límite de 50 fuentes del plan gratuito de NotebookLM.
->>>>>>> dac8465 (Cambios importantes en las transcripciones asi como consolidador si utilizas Notebook)
 
 ---
 
 ## 6. Personalizar el proyecto
 
-<<<<<<< HEAD
-| Qué quieres cambiar | Dónde tocar | Cómo |
-|---|---|---|
-| El canal a descargar | `url_del_canal` | Pega la URL del nuevo canal |
-| La carpeta de salida | `ruta_de_guardado` | Escribe la ruta/nombre que quieras |
-| El idioma de los subtítulos | `'subtitleslangs': ['en']` dentro de `ydl_opts` | Cambia `'en'` por `'es'` (español), `'fr'` (francés), etc. Puedes poner varios: `['es', 'en']` |
-| El formato del nombre de archivo | `'outtmpl'` dentro de `ydl_opts` | Usa las [plantillas de salida de yt-dlp](https://github.com/yt-dlp/yt-dlp#output-template) |
-=======
 La mayoría de ajustes (canal, carpeta, idioma, límite de palabras) ya no requieren tocar el código — se pasan como parámetros o se responden por pantalla, como se explica en los pasos 4 y 5.
 
 Si quieres ir más allá, esto sí requiere editar el código directamente:
@@ -210,7 +171,6 @@ Si quieres ir más allá, esto sí requiere editar el código directamente:
 |---|---|---|
 | El formato del nombre de archivo de cada vídeo | `'outtmpl'` dentro de `ydl_opts` en `descargar_transcripciones.py` | Usa las [plantillas de salida de yt-dlp](https://github.com/yt-dlp/yt-dlp#output-template) |
 | El separador entre transcripciones en los tomos consolidados | El bloque `texto_consolidado += ...` en `Consolidador.py` | Cambia el texto del separador y la etiqueta `FUENTE:` a tu gusto |
->>>>>>> dac8465 (Cambios importantes en las transcripciones asi como consolidador si utilizas Notebook)
 
 ---
 
