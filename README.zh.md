@@ -13,8 +13,8 @@
 - [1. 安装 Python](#1-安装-python)
 - [2. 下载项目](#2-下载项目)
 - [3. 安装依赖库](#3-安装依赖库)
-- [4. 配置要下载的频道](#4-配置要下载的频道)
-- [5. 运行脚本](#5-运行脚本)
+- [4. 下载某个频道的字幕](#4-下载某个频道的字幕)
+- [5. 为 NotebookLM 整合字幕](#5-为-notebooklm-整合字幕)
 - [6. 自定义项目](#6-自定义项目)
 - [无需安装的替代方案：Google Colab / Jupyter](#-无需安装的替代方案google-colab--jupyter)
 - [注意事项与常见问题](#-注意事项与常见问题)
@@ -97,21 +97,11 @@ pip install -r requirements.txt
 
 ---
 
-## 4. 配置要下载的频道
+## 4. 下载某个频道的字幕
 
-打开 `descargar_transcripciones.py`，找到文件末尾的这两行：
+有两种运行方式，任选其一即可。
 
-```python
-url_del_canal = "https://www.youtube.com/@CanalDeEjemplo"
-ruta_de_guardado = r"transcripciones/CanalDeEjemplo"
-```
-
-- **`url_del_canal`**：替换为你想下载的频道链接（例如 `https://www.youtube.com/@频道名` 或 `https://www.youtube.com/channel/UCxxxxxx`）。
-- **`ruta_de_guardado`**：这是保存 `.txt` 文件的文件夹名称，可以自由命名。
-
----
-
-## 5. 运行脚本
+### 方式一：交互模式（推荐给不熟悉终端命令的用户）
 
 在项目文件夹中运行：
 
@@ -119,20 +109,68 @@ ruta_de_guardado = r"transcripciones/CanalDeEjemplo"
 python descargar_transcripciones.py
 ```
 
-（根据系统情况，也可能是 `python3 descargar_transcripciones.py`）
+脚本会依次询问：
+1. 频道链接（例如 `https://www.youtube.com/@频道名`）
+2. 保存 `.txt` 文件的文件夹（直接按回车会根据频道名自动生成）
+3. 字幕语言（直接按回车默认使用英语）
 
-脚本会在终端中显示进度，完成后，你可以在 `ruta_de_guardado` 指定的文件夹中找到清理好的 `.txt` 文件。
+> 💡 不需要在链接末尾加上 `/videos`——脚本会自动处理，以避免下载 Shorts、直播以及频道播放列表中重复的视频。
+
+### 方式二：命令行模式（用于自动化，或无需每次手动输入即可重复运行）
+
+```bash
+python descargar_transcripciones.py -c "https://www.youtube.com/@频道名" -d "transcripciones/我的频道" -i zh,en
+```
+
+| 参数 | 作用 | 是否必填 |
+|---|---|---|
+| `-c`, `--canal` | YouTube 频道链接 | 是 |
+| `-d`, `--destino` | 保存 `.txt` 文件的文件夹 | 否（不填则自动生成） |
+| `-i`, `--idiomas` | 字幕语言，用逗号分隔（例如 `zh,en`） | 否（默认 `en`） |
+
+脚本会在终端中显示进度，完成后即可在目标文件夹中找到清理好的 `.txt` 文件。
+
+---
+
+## 5. 为 NotebookLM 整合字幕
+
+如果你打算把这些字幕上传到 [NotebookLM](https://notebooklm.google/)，项目中还包含 `Consolidador.py`，它会把零散的 `.txt` 文件打包成"合集"，并遵守 NotebookLM **每个来源 50 万字**的限制（默认设置 45 万字作为安全余量），而不是把每个视频都当作一个单独的来源上传，很快就用完免费版 50 个来源的额度。
+
+### 方式一：交互模式
+
+```bash
+python Consolidador.py
+```
+
+脚本会询问原始 `.txt` 所在的文件夹、输出文件夹、每个合集的字数上限，以及（可选的）生成文件的命名前缀。
+
+### 方式二：命令行模式
+
+```bash
+python Consolidador.py -o "transcripciones/我的频道" -d "notebooklm_listo" -l 450000 -n "我的频道"
+```
+
+| 参数 | 作用 | 是否必填 |
+|---|---|---|
+| `-o`, `--origen` | 存放零散 `.txt` 文件的文件夹 | 是 |
+| `-d`, `--destino` | 保存整合后合集的文件夹 | 否（默认 `notebooklm_listo`） |
+| `-l`, `--limite` | 每个合集的字数上限 | 否（默认 45 万字） |
+| `-n`, `--nombre` | 生成文件的命名前缀 | 否（默认根据来源文件夹自动生成） |
+
+运行结束后，如果生成的合集数量超过了 NotebookLM 免费版 50 个来源的限制，脚本会给出提示。
 
 ---
 
 ## 6. 自定义项目
 
+大部分设置（频道、文件夹、语言、字数上限）现在都不需要修改代码了——按照第 4、5 步的说明，通过命令行参数或交互问答即可完成。
+
+如果想做更深入的自定义，则需要直接修改代码：
+
 | 想修改的内容 | 修改位置 | 方法 |
 |---|---|---|
-| 要下载的频道 | `url_del_canal` | 粘贴新的频道链接 |
-| 输出文件夹 | `ruta_de_guardado` | 填写你想要的路径/名称 |
-| 字幕语言 | `ydl_opts` 中的 `'subtitleslangs': ['en']` | 将 `'en'` 改为 `'es'`（西班牙语）、`'zh'`（中文）等，也可以填写多个：`['zh', 'en']` |
-| 输出文件命名格式 | `ydl_opts` 中的 `'outtmpl'` | 参考 [yt-dlp 的输出模板文档](https://github.com/yt-dlp/yt-dlp#output-template) |
+| 每个视频的输出文件命名格式 | `descargar_transcripciones.py` 中 `ydl_opts` 里的 `'outtmpl'` | 参考 [yt-dlp 的输出模板文档](https://github.com/yt-dlp/yt-dlp#output-template) |
+| 合集中各段字幕之间的分隔符 | `Consolidador.py` 中的 `texto_consolidado += ...` 部分 | 按喜好修改分隔符文本和 `FUENTE:` 标签 |
 
 ---
 

@@ -13,8 +13,8 @@ A Python script that automatically downloads the transcripts (subtitles) of ever
 - [1. Install Python](#1-install-python)
 - [2. Download the project](#2-download-the-project)
 - [3. Install the dependencies](#3-install-the-dependencies)
-- [4. Configure the channel to download](#4-configure-the-channel-to-download)
-- [5. Run the script](#5-run-the-script)
+- [4. Download a channel's transcripts](#4-download-a-channels-transcripts)
+- [5. Consolidate transcripts for NotebookLM](#5-consolidate-transcripts-for-notebooklm)
 - [6. Customize the project](#6-customize-the-project)
 - [No-install alternatives: Google Colab / Jupyter](#-no-install-alternatives-google-colab--jupyter)
 - [Notes and common issues](#-notes-and-common-issues)
@@ -97,42 +97,80 @@ If `pip` doesn't work, try `pip3` or `python -m pip install -r requirements.txt`
 
 ---
 
-## 4. Configure the channel to download
+## 4. Download a channel's transcripts
 
-Open `descargar_transcripciones.py` and find these two lines at the end of the file:
+There are two ways to run it — pick whichever you prefer.
 
-```python
-url_del_canal = "https://www.youtube.com/@CanalDeEjemplo"
-ruta_de_guardado = r"transcripciones/CanalDeEjemplo"
-```
+### Option A: interactive mode (recommended if you're not comfortable with the terminal)
 
-- **`url_del_canal`**: replace it with the URL of the channel you want (e.g. `https://www.youtube.com/@ChannelName` or `https://www.youtube.com/channel/UCxxxxxx`).
-- **`ruta_de_guardado`**: this is the folder name where the `.txt` files will be saved. You can name it whatever you like.
-
----
-
-## 5. Run the script
-
-From the project folder:
+From the project folder, run:
 
 ```bash
 python descargar_transcripciones.py
 ```
 
-(or `python3 descargar_transcripciones.py` depending on your system)
+The script will ask you for:
+1. The channel URL (e.g. `https://www.youtube.com/@ChannelName`)
+2. The folder to save the `.txt` files in (press Enter to auto-generate one from the channel name)
+3. The subtitle language (press Enter to default to English)
 
-The script will show progress in the terminal, and once it finishes, you'll find the clean `.txt` files inside the folder you set in `ruta_de_guardado`.
+> 💡 You don't need to add `/videos` to the end of the URL — the script does that automatically, to avoid downloading Shorts, livestreams, and duplicate videos from the channel's playlists.
+
+### Option B: command line (to automate it or rerun it without typing anything by hand)
+
+```bash
+python descargar_transcripciones.py -c "https://www.youtube.com/@ChannelName" -d "transcripciones/MyChannel" -i en,es
+```
+
+| Flag | What it does | Required |
+|---|---|---|
+| `-c`, `--canal` | YouTube channel URL | Yes |
+| `-d`, `--destino` | Folder to save the `.txt` files in | No (auto-generated if omitted) |
+| `-i`, `--idiomas` | Subtitle languages, comma-separated (e.g. `en,es`) | No (defaults to `en`) |
+
+The script will show progress in the terminal, and once it finishes, you'll have the clean `.txt` files in the destination folder.
+
+---
+
+## 5. Consolidate transcripts for NotebookLM
+
+If you're going to upload the transcripts to [NotebookLM](https://notebooklm.google/), the project includes `Consolidador.py`, which groups the loose `.txt` files into "volumes" that respect NotebookLM's **500,000-words-per-source** limit (with a 450,000-word safety margin by default), instead of uploading each video as a separate source and quickly burning through the free plan's 50-source limit.
+
+### Option A: interactive mode
+
+```bash
+python Consolidador.py
+```
+
+It will ask for the source folder (where the `.txt` files are), the destination folder, the word limit per volume, and optionally a name for the generated files.
+
+### Option B: command line
+
+```bash
+python Consolidador.py -o "transcripciones/MyChannel" -d "notebooklm_listo" -l 450000 -n "MyChannel"
+```
+
+| Flag | What it does | Required |
+|---|---|---|
+| `-o`, `--origen` | Folder with the loose `.txt` files to consolidate | Yes |
+| `-d`, `--destino` | Folder to save the consolidated volumes in | No (defaults to `notebooklm_listo`) |
+| `-l`, `--limite` | Word limit per volume | No (defaults to 450,000) |
+| `-n`, `--nombre` | Prefix for naming the generated volumes | No (derived from the source folder) |
+
+When it finishes, the script warns you if the number of generated volumes exceeds NotebookLM's 50-source limit on the free plan.
 
 ---
 
 ## 6. Customize the project
 
+Most settings (channel, folder, language, word limit) no longer require touching the code — they're passed as flags or answered interactively, as explained in steps 4 and 5.
+
+For anything beyond that, you'll need to edit the code directly:
+
 | What you want to change | Where to edit it | How |
 |---|---|---|
-| The channel to download | `url_del_canal` | Paste the new channel's URL |
-| The output folder | `ruta_de_guardado` | Type whatever path/name you want |
-| The subtitle language | `'subtitleslangs': ['en']` inside `ydl_opts` | Change `'en'` to `'es'` (Spanish), `'zh'` (Chinese), etc. You can list several: `['es', 'en']` |
-| The output filename format | `'outtmpl'` inside `ydl_opts` | Use [yt-dlp's output templates](https://github.com/yt-dlp/yt-dlp#output-template) |
+| The output filename format for each video | `'outtmpl'` inside `ydl_opts` in `descargar_transcripciones.py` | Use [yt-dlp's output templates](https://github.com/yt-dlp/yt-dlp#output-template) |
+| The separator between transcripts inside the consolidated volumes | The `texto_consolidado += ...` block in `Consolidador.py` | Change the separator text and the `FUENTE:` label to your liking |
 
 ---
 
