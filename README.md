@@ -59,6 +59,15 @@ Hay pruebas unitarias y de API sin peticiones reales a YouTube. Las integracione
 - [Arquitectura, API y checklist de integración](docs/architecture.md)
 - [Documentación de yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
+
+## Copias, compatibilidad y Windows
+
+- **Copias SQLite:** `python -m transcript_studio.database_backup backup --output "mi-copia.sqlite3"`. Comprueba con `verify --input "mi-copia.sqlite3"` y restaura únicamente en una **carpeta nueva**. [Instrucciones](docs/sqlite-backups.md).
+- **Compatibilidad real con YouTube:** prueba opcional de tres vídeos con permiso expreso, sin cookies ni reintentos agresivos. [Protocolo manual](docs/youtube-compatibility.md).
+- **Windows sin Python:** hay un workflow que construye un instalador **sin firmar** y lo prueba sin publicar releases. No incluye Deno; la descarga de YouTube puede necesitarlo. [Detalles del instalador](docs/windows-installer.md).
+
+**Seguridad:** evita publicar transcripciones personales, bases de datos y cookies. Las migraciones no deben ejecutarse con dos instancias de Transcript Studio utilizando simultáneamente la misma carpeta de datos.
+
 ## Limitaciones
 
 - Solo los subtítulos que YouTube permite obtener. Una cuenta o cookies no garantiza acceso ni evita 403/429.

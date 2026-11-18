@@ -108,9 +108,9 @@ class PruebasResiliencia(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             cookies = Path(tmp) / "cookies.txt"
             cookies.write_text("# Netscape HTTP Cookie File")
-            self.assertEqual(app._opciones_autenticacion(cookies=str(cookies)), {
-                "cookiefile": str(cookies)
-            })
+            # On Windows pathlib.resolve() may canonicalize 8.3 short paths.
+            actual = app._opciones_autenticacion(cookies=str(cookies))
+            self.assertTrue(Path(actual["cookiefile"]).samefile(cookies))
             with self.assertRaises(ValueError):
                 app._opciones_autenticacion("brave", str(cookies))
 

@@ -28,3 +28,9 @@ Objetivo inicial: utilidad local y fiabilidad para estudiantes, investigadores y
 7. Guía de incidencias y una release con changelog y limitaciones conocidas.
 
 El criterio de éxito es **medible**, no el número de funcionalidades.
+
+## Estado de los issues #6, #7 y #8
+
+- **#6**: migraciones + backup/restore con pruebas automatizadas implementadas en la rama de trabajo. Falta validar una actualización personal en Windows con una copia real.
+- **#7**: disponible el protocolo y script manual bajo consentimiento; pendiente el ensayo externo autorizado y adjuntar evidencias. **No dar por terminado** solo porque el script exista.
+- **#8**: workflow y scripts de instalación creados; la aprobación de CI, pruebas en Windows limpio y firma del instalador son requisitos de publicación, no tareas ya finalizadas.

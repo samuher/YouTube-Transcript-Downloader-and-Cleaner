@@ -1,5 +1,16 @@
 # Cambios
 
+## Sin publicar — mantenimiento SQLite y empaquetado Windows (PR pendiente)
+
+- Migraciones transaccionales del esquema SQLite desde instalaciones 0.2.0, conservando registros.
+- Copias SQLite consistentes con WAL, verificación de integridad y restauración sin sobrescribir bibliotecas.
+- Prueba opt-in de tres vídeos de YouTube, nunca automatizada contra la plataforma.
+- Empaquetado PyInstaller e instalador Inno Setup sin firma, con pruebas Windows de arranque/reinicio/desinstalación y hashes SHA-256.
+- Correcciones de cierre de conexiones SQLite en Windows.
+
+**Los cambios aún no son una release, ni se han integrado en `main`.**
+
+
 Se utiliza versionado semántico a partir de una futura publicación estable. **No se ha publicado una versión 1.0.**
 
 ## Sin publicar — propuesta P0 (PR pendiente)
