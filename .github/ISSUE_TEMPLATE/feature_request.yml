@@ -1,0 +1,22 @@
+name: Solicitud de mejora
+description: Proponer una función que resuelva una necesidad concreta
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema que quieres resolver
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Comportamiento esperado
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Cómo comprobaríamos que funciona
+      description: Incluye un ejemplo y una condición observable.
