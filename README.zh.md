@@ -42,6 +42,31 @@ python descargar_transcripciones.py -c "https://www.youtube.com/@ChannelName" -i
 
 输出文件名包含视频 ID，避免同名文件覆盖。隐藏文件 `.transcripciones_index.json` 记录成功下载的字幕，以便下次跳过。没有字幕的视频会在以后重新尝试。
 
+## 长频道下载、重试与断点续传
+
+不设置 `--max-videos` 即可处理频道 **/videos 页面所有视频**；Shorts 和直播需要分别使用对应页面链接。本工具下载已有字幕，不会将音频转录为文本。
+
+```bash
+# 先测试前五个视频
+python descargar_transcripciones.py -c "https://www.youtube.com/@ChannelName" -i zh --max-videos 5
+# 再处理整个频道，自动跳过已完成的项目
+python descargar_transcripciones.py -c "https://www.youtube.com/@ChannelName" -i zh
+```
+
+`--max-videos` 始终限制**前** N 个视频，而不是接下来的 N 个。新视频请求之间默认随机暂停 **3–7 秒**（`--pausa-min` / `--pausa-max`）。遇到 429、部分 5xx 和临时网络错误会额外重试 **2 次**（`--reintentos`），逐步延长等待时间（默认约 30、60 秒，可用 `--espera-inicial`、`--espera-maxima` 调整）。
+
+持续的 429、403、机器人验证或登录要求会**停止本次运行**，保留之前的 TXT。重新使用相同链接和目录运行可继续处理。隐藏文件 `.transcripciones_index.json` 记录已完成项目，`reporte_descargas.csv` 累积记录每次处理的结果；没有字幕的视频可稍后重试。
+
+如果你拥有合法访问权限，也可以选择使用本机浏览器登录状态：
+
+```bash
+python descargar_transcripciones.py -c "https://www.youtube.com/@ChannelName" --navegador brave
+# 或使用本地 Netscape 格式的 cookies 文件（不可与上一选项同时使用）
+python descargar_transcripciones.py -c "https://www.youtube.com/@ChannelName" --cookies "cookies.txt"
+```
+
+**Cookies 是敏感会话凭据，请勿分享或上传到 GitHub。** 使用账号可能有风险。参阅 [yt-dlp YouTube 说明](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#youtube) 和 [Cookie FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp)。Cookies 不能保证绕过限流或机器人验证；被阻止时请停止重复请求。
+
 ## 整理 NotebookLM 分卷
 
 ```bash

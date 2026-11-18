@@ -6,3 +6,10 @@ venv/
 transcripciones/
 notebooklm_listo/
 *.tmp
+
+# Local session credentials and generated state (including custom folders):
+cookies.txt
+cookies-*.txt
+*.cookies.txt
+**/.transcripciones_index.json
+**/reporte_descargas.csv
