@@ -8,6 +8,8 @@ from pathlib import Path
 import sqlite3
 from uuid import uuid4
 
+from .migrations import migrate
+
 
 def now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -37,36 +39,14 @@ class Store:
     def initialize(self):
         with self.connection() as conn:
             conn.execute("PRAGMA journal_mode=WAL")
-            conn.executescript("""
-                CREATE TABLE IF NOT EXISTS jobs (
-                  id TEXT PRIMARY KEY, url TEXT NOT NULL, languages TEXT NOT NULL,
-                  options TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'queued',
-                  total INTEGER NOT NULL DEFAULT 0, processed INTEGER NOT NULL DEFAULT 0,
-                  downloaded INTEGER NOT NULL DEFAULT 0, skipped INTEGER NOT NULL DEFAULT 0,
-                  failed INTEGER NOT NULL DEFAULT 0, error TEXT NOT NULL DEFAULT '',
-                  created_at TEXT NOT NULL, updated_at TEXT NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS job_videos (
-                  job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
-                  video_id TEXT NOT NULL, title TEXT NOT NULL, status TEXT NOT NULL,
-                  error TEXT NOT NULL DEFAULT '', attempts INTEGER NOT NULL DEFAULT 0,
-                  PRIMARY KEY (job_id, video_id)
-                );
-                CREATE TABLE IF NOT EXISTS transcripts (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  video_id TEXT NOT NULL, title TEXT NOT NULL,
-                  language TEXT NOT NULL, kind TEXT NOT NULL,
-                  source_url TEXT NOT NULL, original TEXT NOT NULL,
-                  text TEXT NOT NULL, segments TEXT NOT NULL,
-                  created_at TEXT NOT NULL,
-                  UNIQUE(video_id, language)
-                );
-                CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status,created_at);
-                CREATE INDEX IF NOT EXISTS idx_transcripts_title ON transcripts(title);
-                CREATE INDEX IF NOT EXISTS idx_job_videos_status ON job_videos(job_id,status);
-            """)
+            migrate(conn)
             # An interrupted process must not leave a job 'running' forever.
             conn.execute("UPDATE jobs SET status='queued', updated_at=? WHERE status='running'", (now(),))
+
+    def backup(self, destination):
+        """Create an atomic, integrity-checked copy without pausing readers."""
+        from .database_backup import backup_database
+        return backup_database(self.path, destination)
 
     def create_job(self, url, languages, options):
         job_id = uuid4().hex[:16]
@@ -121,6 +101,8 @@ class Store:
                 VALUES(?,?,?,?,?,?) ON CONFLICT(job_id,video_id) DO UPDATE SET
                 status=excluded.status,error=excluded.error,attempts=excluded.attempts,title=excluded.title""",
                 (job_id, video_id, title[:400], status, error[:500], attempts))
+            conn.execute("UPDATE job_videos SET last_attempt_at=? WHERE job_id=? AND video_id=?",
+                         (now(), job_id, video_id))
             counts = conn.execute("""SELECT COUNT(*) n,
                 SUM(status='downloaded') downloaded, SUM(status='skipped') skipped,
                 SUM(status='failed') failed FROM job_videos
