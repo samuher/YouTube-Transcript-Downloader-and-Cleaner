@@ -5,6 +5,7 @@ on:
     paths:
       - 'packaging/windows/**'
       - 'src/**'
+      - 'tests/**'
       - 'pyproject.toml'
       - '.github/workflows/windows-installer.yml'
   workflow_dispatch:
