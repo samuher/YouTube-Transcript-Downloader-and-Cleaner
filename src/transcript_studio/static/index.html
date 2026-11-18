@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10131b">
+  <title>Transcript Studio — Tu biblioteca de conocimiento</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navegación principal">
+      <div class="brand"><div class="brand-icon" aria-hidden="true">▤</div><span>Transcript<span class="brand-sub">Studio</span></span></div>
+      <div class="sidebar-label">ESPACIO DE TRABAJO</div>
+      <nav aria-label="Secciones">
+        <button class="nav-btn active" data-tab="dashboard"><span class="nav-icon">◫</span> Resumen</button>
+        <button class="nav-btn" data-tab="jobs"><span class="nav-icon">⇣</span> Descargas</button>
+        <button class="nav-btn" data-tab="library"><span class="nav-icon">▤</span> Biblioteca</button>
+        <button class="nav-btn" data-tab="export"><span class="nav-icon">⇧</span> Exportaciones</button>
+      </nav>
+      <div class="sidebar-bottom"><div class="local-dot"></div><span>Aplicación local</span><small>Los archivos se guardan en tu equipo</small></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><div class="breadcrumbs">MI ESPACIO <span>/</span> <span id="crumb">RESUMEN</span></div><div class="top-right"><span class="status-pill"><span class="dot"></span> En funcionamiento</span><span class="version">v0.2</span></div></header>
+      <section id="dashboard" class="panel current">
+        <div class="hero"><div class="eyebrow"><span class="spark">✦</span> TU BIBLIOTECA DE CONOCIMIENTO</div><h1>Todo tu contenido.<br><em>En un solo lugar.</em></h1><p>Convierte subtítulos de vídeos y canales en material que puedes buscar, organizar y exportar. Sin subir tus datos a un servidor externo.</p></div>
+        <div class="stat-row"><div class="stat-card"><span>Transcripciones</span><strong id="count-transcripts">—</strong><small>Guardadas en tu biblioteca</small></div><div class="stat-card"><span>Vídeos únicos</span><strong id="count-videos">—</strong><small>Con contenido disponible</small></div><div class="stat-card"><span>Trabajos activos</span><strong id="count-active">—</strong><small>En curso o pendientes</small></div></div>
+        <div class="card start-card"><div><div class="card-tag">NUEVA DESCARGA</div><h2>¿Qué quieres guardar?</h2><p>Pega un enlace de un vídeo o de un canal de YouTube.</p></div><form id="create-form"><label for="video-url">URL DE YOUTUBE</label><div class="url-row"><span aria-hidden="true" class="youtube-icon">▶</span><input id="video-url" type="url" placeholder="https://youtube.com/@canal" required autocomplete="off"><button class="primary" type="submit">Añadir a la cola <span aria-hidden="true">→</span></button></div><div class="options-row"><label>Idiomas<input id="languages" value="es,en" aria-label="Idiomas separados por coma" maxlength="40"></label><label>Límite de vídeos<input id="max-videos" type="number" min="0" max="100000" value="5" aria-label="Máximo de vídeos; cero indica todos"></label><label>Sesión local<select id="browser"><option value="">Sin iniciar sesión</option><option value="brave">Brave</option><option value="chrome">Chrome</option><option value="firefox">Firefox</option><option value="edge">Edge</option><option value="chromium">Chromium</option></select></label></div><div class="field-hint">Un límite de 0 procesa toda la pestaña del canal. Recomendamos probar primero con cinco vídeos.</div></form></div>
+        <div class="section-heading"><div><h2>Actividad reciente</h2><p>Seguimiento de tus últimas descargas</p></div><button class="text-action" data-go="jobs">Ver todas →</button></div><div id="recent-jobs" class="recent-list empty">Cargando trabajos...</div>
+      </section>
+      <section id="jobs" class="panel"><div class="page-head"><div class="eyebrow">TRABAJOS</div><h1>Descargas</h1><p>Supervisa el progreso. Puedes pausar, reanudar o cancelar cada trabajo.</p></div><div class="card"><div class="section-heading slim"><h2>Cola de procesamiento</h2><button class="subtle" id="refresh-jobs">Actualizar ↻</button></div><div id="job-list" class="job-list empty">Cargando...</div></div><div class="notice">Ante un 403, 429 persistente o comprobación de bot, el proceso se detiene. Espera antes de reanudar. Nunca garantizamos acceso a todos los subtítulos.</div></section>
+      <section id="library" class="panel"><div class="page-head"><div class="eyebrow">CONTENIDO</div><h1>Biblioteca</h1><p>Encuentra palabras y conceptos dentro de tus transcripciones.</p></div><div class="card"><div class="search-row"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Buscar en título o texto..." aria-label="Buscar transcripciones"><select id="filter-language" aria-label="Filtrar por idioma"><option value="">Todos los idiomas</option><option value="es">Español</option><option value="en">Inglés</option></select><button class="subtle" id="search-btn">Buscar</button></div><div id="transcript-list" class="transcript-list empty">Cargando biblioteca...</div></div></section>
+      <section id="export" class="panel"><div class="page-head"><div class="eyebrow">RESULTADOS</div><h1>Exportaciones</h1><p>Elige tus transcripciones y prepara archivos para estudiar o analizar.</p></div><div class="card"><h2>Prepara tus archivos</h2><p class="muted">Marca los vídeos que quieras exportar desde la biblioteca, o selecciona todos los resultados cargados.</p><div class="export-stats"><div><strong id="selection-count">0</strong><span>seleccionados</span></div><button class="subtle" id="select-loaded">Seleccionar visibles</button><button class="subtle" id="clear-selection">Limpiar</button></div><div class="format-grid" id="formats"><label class="format-choice"><input type="radio" name="fmt" value="txt" checked><span><b>TXT</b><small>Texto limpio</small></span></label><label class="format-choice"><input type="radio" name="fmt" value="md"><span><b>Markdown</b><small>Con fuente y enlaces</small></span></label><label class="format-choice"><input type="radio" name="fmt" value="srt"><span><b>SRT</b><small>Con tiempos originales</small></span></label><label class="format-choice"><input type="radio" name="fmt" value="json"><span><b>JSON</b><small>Datos estructurados</small></span></label><label class="format-choice"><input type="radio" name="fmt" value="notebooklm"><span><b>NotebookLM</b><small>Tomos por palabras y tamaño</small></span></label></div><div id="notebook-options" class="options-row hidden"><label>Máx. palabras por tomo<input id="words" type="number" min="10" max="500000" value="450000"></label><label>Máx. MB por tomo<input id="bytes-mb" type="number" min="1" max="200" value="8"></label></div><div class="export-bottom"><span>Se descargará un archivo ZIP a tu equipo.</span><button id="download-export" class="primary">Descargar exportación ↗</button></div></div></section>
+      <footer class="footer"><span>Transcript Studio · Procesamiento local</span><span>La disponibilidad de subtítulos depende de YouTube.</span></footer>
+    </main>
+  </div>
+  <dialog id="viewer"><div class="modal-head"><div><small id="viewer-lang"></small><h2 id="viewer-title"></h2></div><button class="icon-btn" id="viewer-close" aria-label="Cerrar">✕</button></div><a id="viewer-link" target="_blank" rel="noopener noreferrer">Ver vídeo original ↗</a><div class="viewer-tools"><button id="copy-text" class="subtle">Copiar texto</button><span id="viewer-kind"></span></div><div id="viewer-text" class="viewer-text"></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
