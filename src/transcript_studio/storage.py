@@ -124,7 +124,7 @@ class Store:
             counts = conn.execute("""SELECT COUNT(*) n,
                 SUM(status='downloaded') downloaded, SUM(status='skipped') skipped,
                 SUM(status='failed') failed FROM job_videos
-                WHERE job_id=? AND status IN ('downloaded','skipped','failed','missing')""",
+                WHERE job_id=? AND status IN ('downloaded','skipped','failed','missing','partial')""",
                 (job_id,)).fetchone()
             conn.execute("""UPDATE jobs SET processed=?,downloaded=?,skipped=?,failed=?,updated_at=? WHERE id=?""",
                          (counts['n'] or 0, counts['downloaded'] or 0,
@@ -157,7 +157,19 @@ class Store:
         with self.connection() as conn:
             found = {row['language'] for row in conn.execute(
                 'SELECT language FROM transcripts WHERE video_id=?', (video_id,))}
-        return set(languages).issubset(found)
+        # Tracks such as "en-orig" and "es-419" satisfy the requested base language.
+        # Never mark a requested language successful unless a matching file exists.
+        return all(any(actual == wanted or actual.startswith(wanted + '-')
+                       for actual in found) for wanted in languages)
+
+    def status_counts(self, job_id):
+        """Authoritative per-video counts, including missing and partial captions."""
+        with self.connection() as conn:
+            rows = conn.execute(
+                "SELECT status, COUNT(*) n FROM job_videos WHERE job_id=? GROUP BY status",
+                (job_id,),
+            ).fetchall()
+        return {row['status']: row['n'] for row in rows}
 
     def search(self, query="", limit=100, offset=0, language=""):
         with self.connection() as conn:
