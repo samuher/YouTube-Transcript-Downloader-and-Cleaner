@@ -51,6 +51,11 @@ def normalize_url(value: str):
         if not _ID.fullmatch(path):
             raise ValueError('ID de vídeo inválido')
         return f'https://www.youtube.com/watch?v={path}'
+    if path == 'playlist':
+        playlist_id = parse_qs(url.query).get('list', [''])[0]
+        if not re.fullmatch(r'[A-Za-z0-9_-]{10,150}', playlist_id):
+            raise ValueError('Identificador de playlist inválido')
+        return 'https://www.youtube.com/playlist?list=' + playlist_id
     if path == 'watch':
         code = parse_qs(url.query).get('v', [''])[0]
         if not _ID.fullmatch(code):
