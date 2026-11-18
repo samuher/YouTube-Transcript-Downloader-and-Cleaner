@@ -1,6 +1,6 @@
 # Transcript Studio
 
-**Una biblioteca local para los subtítulos de YouTube.** Descarga los subtítulos accesibles de vídeos y canales, conserva sus marcas de tiempo, ofrece búsqueda en la biblioteca y los exporta a TXT, Markdown, SRT, JSON o tomos para NotebookLM.
+**Una biblioteca local para los subtítulos de YouTube.** Descarga los subtítulos accesibles de vídeos, playlists y canales, conserva sus marcas de tiempo, ofrece búsqueda en la biblioteca y los exporta a TXT, Markdown, SRT, JSON o tomos para NotebookLM.
 
 La aplicación tiene una interfaz web local. No exige cuentas, servicios externos de IA ni compilación de frontend. **No descarga el vídeo ni transcribe su audio.** Si YouTube bloquea el acceso a los subtítulos, no existe una garantía de recuperación.
 
@@ -34,7 +34,7 @@ Se abrirá **http://127.0.0.1:8765**. Si no se abre automáticamente, copia ese 
 
 1. En **Resumen**, pega un enlace de un vídeo o canal y selecciona idiomas (p. ej., `es,en`).
 2. Prueba primero **5 vídeos**. Cuando funcione, pon **0** para intentar toda la pestaña `/videos`.
-3. En **Descargas**, consulta progreso, pausa o reanuda. Ante un bloqueo, el trabajo queda `Bloqueado` y no reintenta indefinidamente.
+3. En **Descargas**, consulta progreso, pausa o reanuda. Un trabajo que termina con idiomas ausentes o vídeos sin subtítulos aparece como **Incompleto**, no como un éxito total. Puedes volver a intentarlo sin perder las pistas ya guardadas. Ante un bloqueo, queda `Bloqueado` y no reintenta indefinidamente.
 4. Busca en **Biblioteca**, abre una transcripción o selecciona las que quieras exportar.
 5. En **Exportaciones**, elige formato y descarga un ZIP. NotebookLM crea tomos limitados por palabras **y por bytes**.
 
@@ -51,6 +51,11 @@ python -m pytest -q
 
 Hay pruebas unitarias y de API sin peticiones reales a YouTube. Las integraciones reales dependen de la disponibilidad del servicio y requieren pruebas específicas en una máquina con conexión.
 
+- [Auditoría técnica y riesgos](docs/auditoria-2026-11.md)
+- [Comparativa de herramientas y oportunidad de producto](docs/competencia-2026-11.md)
+- [Roadmap con criterios de aceptación](docs/roadmap.md)
+- [Pruebas, benchmarks y publicación](docs/quality.md)
+- [Cómo contribuir](CONTRIBUTING.md) · [Seguridad](SECURITY.md) · [Cambios](CHANGELOG.md)
 - [Arquitectura, API y checklist de integración](docs/architecture.md)
 - [Documentación de yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
@@ -64,3 +69,5 @@ Hay pruebas unitarias y de API sin peticiones reales a YouTube. Las integracione
 - No se dispone de un ejecutable instalador; se instala mediante Python.
 
 Contribuciones y problemas reproducibles son bienvenidos. No publiques cookies ni datos de inicio de sesión en incidencias.
+
+**Estado de publicación:** el repositorio continúa privado y todavía no tiene una licencia de distribución aprobada. La publicación como open source y las releases se decidirán tras revisión y autorización.
