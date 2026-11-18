@@ -101,7 +101,7 @@ class DatabaseMaintenanceTests(unittest.TestCase):
                            "VALUES('second','https://youtube.com/@test','[\"es\"]','{}','paused','x','x')")
             writer.commit()
             result = store.backup(backup)
-        self.assertEqual(result, backup)
+        self.assertTrue(result.samefile(backup))
         self.assertEqual(verify_database(backup)["counts"]["jobs"], 2)
         with self.assertRaises(FileExistsError):
             backup_database(store.path, backup)
@@ -111,7 +111,7 @@ class DatabaseMaintenanceTests(unittest.TestCase):
         job = store.create_job("https://youtube.com/watch?v=abcdefghijk", ["es"], {})
         backup = backup_database(store.path, self.root / "snapshot.sqlite3")
         restored = restore_database(backup, self.root / "restored")
-        self.assertEqual(restored, self.root / "restored" / "library.sqlite3")
+        self.assertTrue(restored.samefile(self.root / "restored" / "library.sqlite3"))
         reopened = Store(restored)
         self.assertIsNotNone(reopened.get_job(job["id"]))
         with self.assertRaises(FileExistsError):
