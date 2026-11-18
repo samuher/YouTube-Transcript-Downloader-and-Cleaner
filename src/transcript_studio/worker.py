@@ -36,7 +36,7 @@ class Worker:
             try:
                 self.process(job['id'])
             except Exception as exc:
-                self.store.set_status(job['id'],'failed',str(exc))
+                self.store.set_status(job['id'],'failed',str(exc),expected={'running'})
 
     def _interrupt(self, job_id):
         job=self.store.get_job(job_id)
@@ -96,7 +96,10 @@ class Worker:
                 if self._interrupt(job_id):
                     return
                 code,title=item['video_id'],item['title']
-                if self.store.video_status(job_id,code) in ('downloaded','skipped'):
+                # A prior attempt may have downloaded only one of several requested languages.
+                # Do not skip those videos until every requested language is present.
+                if (self.store.video_status(job_id,code) in ('downloaded','skipped')
+                        and self.store.has_languages(code,job['languages'])):
                     continue
                 if self.store.has_languages(code,job['languages']):
                     self.store.record_video(job_id,code,title,'skipped')
@@ -121,7 +124,14 @@ class Worker:
                                 video_id=code,title=title,language=sub.language,kind=sub.kind,
                                 source_url='https://www.youtube.com/watch?v='+code,
                                 original=sub.original,text=sub.text,segments=sub.segments)
-                        self.store.record_video(job_id,code,title,'downloaded',attempts=attempts)
+                        # Keep successfully saved tracks even if other languages are missing.
+                        # A resumable partial video must never be marked fully downloaded.
+                        complete = self.store.has_languages(code,job['languages'])
+                        self.store.record_video(
+                            job_id,code,title,'downloaded' if complete else 'partial',
+                            '' if complete else 'Faltan idiomas solicitados; puedes reintentar',
+                            attempts,
+                        )
                 except (AccessBlocked,RateLimited) as exc:
                     self.store.record_video(job_id,code,title,'blocked',str(exc),attempts)
                     self.store.set_status(job_id,'blocked','Acceso restringido o límite de YouTube; reanuda manualmente más tarde')
@@ -129,8 +139,17 @@ class Worker:
                 except (VideoFailure,TemporaryFailure,ValueError,OSError) as exc:
                     self.store.record_video(job_id,code,title,'failed',str(exc),attempts)
             if not self._interrupt(job_id):
-                self.store.set_status(job_id,'completed')
+                counts = self.store.status_counts(job_id)
+                incomplete = sum(counts.get(status, 0) for status in ('failed','missing','partial'))
+                if incomplete:
+                    self.store.set_status(
+                        job_id, 'partial',
+                        f'{incomplete} vídeos incompletos, sin subtítulos o fallidos; puedes reintentar',
+                        expected={'running'},
+                    )
+                else:
+                    self.store.set_status(job_id,'completed',expected={'running'})
         except (AccessBlocked,RateLimited) as exc:
-            self.store.set_status(job_id,'blocked',str(exc))
+            self.store.set_status(job_id,'blocked',str(exc),expected={'running'})
         except (VideoFailure,TemporaryFailure,ValueError,OSError) as exc:
-            self.store.set_status(job_id,'failed',str(exc))
+            self.store.set_status(job_id,'failed',str(exc),expected={'running'})
