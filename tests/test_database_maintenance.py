@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from contextlib import closing
 import sqlite3
 import sys
 import tempfile
@@ -18,7 +19,7 @@ import transcript_studio.migrations as migrations
 
 def legacy_database(path):
     """Create a representative SQLite schema written by Transcript Studio 0.2.0."""
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         for statement in SCHEMA_SQL.split(";"):
             if statement.strip():
                 conn.execute(statement)
@@ -52,7 +53,7 @@ class DatabaseMaintenanceTests(unittest.TestCase):
         self.assertEqual(store.get_job("legacy")["status"], "paused")
         self.assertEqual(store.stats()["transcripts"], 1)
         self.assertEqual(store.video_status("legacy", "abcdefghijk"), "downloaded")
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn, conn:
             self.assertEqual(conn.execute("PRAGMA user_version").fetchone()[0], SCHEMA_VERSION)
             columns = {x[1] for x in conn.execute("PRAGMA table_info(job_videos)")}
             self.assertIn("last_attempt_at", columns)
@@ -63,7 +64,7 @@ class DatabaseMaintenanceTests(unittest.TestCase):
         store = Store(self.root / "fresh.sqlite3")
         job = store.create_job("https://youtube.com/watch?v=abcdefghijk", ["es"], {})
         store.record_video(job["id"], "abcdefghijk", "Test", "downloaded", attempts=2)
-        with sqlite3.connect(store.path) as conn:
+        with closing(sqlite3.connect(store.path)) as conn, conn:
             value = conn.execute("SELECT last_attempt_at FROM job_videos").fetchone()[0]
             self.assertTrue(value.startswith("20"))
 
@@ -74,7 +75,7 @@ class DatabaseMaintenanceTests(unittest.TestCase):
         ):
             with self.assertRaises(sqlite3.DatabaseError):
                 Store(path)
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn, conn:
             self.assertEqual(conn.execute("PRAGMA user_version").fetchone()[0], 0)
             self.assertIsNone(
                 conn.execute("SELECT name FROM sqlite_master WHERE name='attempted'").fetchone()
@@ -83,18 +84,18 @@ class DatabaseMaintenanceTests(unittest.TestCase):
     def test_newer_schema_refused(self):
         path = self.root / "newer.sqlite3"
         legacy_database(path)
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn, conn:
             conn.execute("PRAGMA user_version=999")
         with self.assertRaises(RuntimeError):
             Store(path)
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn, conn:
             self.assertEqual(conn.execute("PRAGMA user_version").fetchone()[0], 999)
 
     def test_backup_includes_committed_wal_rows(self):
         store = Store(self.root / "library.sqlite3")
         store.create_job("https://youtube.com/watch?v=abcdefghijk", ["es"], {})
         backup = self.root / "backups" / "snapshot.sqlite3"
-        with sqlite3.connect(store.path) as writer:
+        with closing(sqlite3.connect(store.path)) as writer, writer:
             writer.execute("PRAGMA journal_mode=WAL")
             writer.execute("INSERT INTO jobs(id,url,languages,options,status,created_at,updated_at) "
                            "VALUES('second','https://youtube.com/@test','[\"es\"]','{}','paused','x','x')")
