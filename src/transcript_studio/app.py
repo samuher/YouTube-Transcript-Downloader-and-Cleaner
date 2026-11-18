@@ -123,7 +123,7 @@ def create_app(data_dir=None, provider_factory=None, start_worker=True):
         status=result['status']
         transitions={
             'pause':({'running','queued'},'paused'),
-            'resume':({'paused','blocked','failed'},'queued'),
+            'resume':({'paused','blocked','failed','partial'},'queued'),
             'cancel':({'queued','running','paused','blocked','failed'},'cancelled'),
         }
         if action not in transitions:
