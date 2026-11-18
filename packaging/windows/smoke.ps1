@@ -43,6 +43,12 @@ try {
     $jobs = Invoke-RestMethod "http://127.0.0.1:$port/api/jobs"
     if (@($jobs | Where-Object status -EQ "paused").Count -lt 1) { throw "Paused job missing" }
     Stop-Server
+    # Simulate an in-place application update/reinstall. User data must remain.
+    $upgrade = Start-Process -FilePath $Installer -ArgumentList @(
+        "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART",
+        "/DIR=$installDir"
+    ) -Wait -PassThru
+    if ($upgrade.ExitCode -ne 0) { throw "In-place reinstall failed" }
     Run-Server $exe
     $jobs = Invoke-RestMethod "http://127.0.0.1:$port/api/jobs"
     if (@($jobs | Where-Object status -EQ "paused").Count -lt 1) { throw "Data not persistent after restart" }
@@ -56,7 +62,7 @@ try {
     if (!(Test-Path (Join-Path $data "library.sqlite3"))) {
         throw "Uninstall destroyed user data"
     }
-    Write-Host "PASS: installation, local health, data after restart, uninstall preserves data"
+    Write-Host "PASS: installation, local health, in-place reinstall, restart and uninstall preserve user data"
 } finally {
     Stop-Server
 }
