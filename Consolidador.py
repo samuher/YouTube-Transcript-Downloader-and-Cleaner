@@ -1,139 +1,143 @@
-import os
+"""Agrupa transcripciones TXT en tomos con un límite de palabras comprobable."""
+
 import argparse
+import re
+import sys
+import tempfile
+from pathlib import Path
+
+LIMITE_PREDETERMINADO = 450_000
+LIMITE_MAXIMO = 500_000
+ARCHIVOS_A_IGNORAR = {"archivo_descargados.txt"}
+
+
+def _encabezado(nombre, parte=None):
+    etiqueta = f"FUENTE: {nombre}"
+    if parte is not None:
+        etiqueta += f" (parte {parte})"
+    return f"\n\n---\n{etiqueta}\n---\n\n"
 
 
 def consolidar_textos(carpeta_origen, carpeta_destino=None,
-                       limite_palabras_por_lote=450000, nombre_base=None):
-    """
-    Agrupa los .txt de carpeta_origen en 'megarchivos' respetando el límite
-    de palabras por fuente de NotebookLM (500.000 palabras), dejando margen
-    de seguridad (450.000 por defecto) en lugar de agrupar por número fijo
-    de archivos.
-    """
-    if not carpeta_destino:
-        carpeta_destino = "notebooklm_listo"
+                       limite_palabras_por_lote=LIMITE_PREDETERMINADO, nombre_base=None):
+    origen = Path(carpeta_origen).expanduser().resolve()
+    destino = Path(carpeta_destino or "notebooklm_listo").expanduser().resolve()
+    if not origen.is_dir():
+        raise ValueError(f"La carpeta de origen no existe: {origen}")
+    if origen == destino:
+        raise ValueError("Origen y destino deben ser carpetas distintas")
+    if not 1 <= limite_palabras_por_lote <= LIMITE_MAXIMO:
+        raise ValueError(f"El límite debe estar entre 1 y {LIMITE_MAXIMO:,} palabras")
+    base = nombre_base if nombre_base is not None else f"{origen.name}_Tomo"
+    base = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", base).strip(" ._")
+    if not base or base in {".", ".."}:
+        raise ValueError("El nombre de los tomos no puede estar vacío")
 
-    if not nombre_base:
-        # Usa el nombre de la carpeta de origen para nombrar los tomos automáticamente
-        nombre_base = os.path.basename(os.path.normpath(carpeta_origen)) or "Fuente"
-        nombre_base = f"{nombre_base}_Tomo"
+    archivos = sorted((p for p in origen.iterdir() if p.is_file() and p.suffix.lower() == ".txt"
+                       and p.name.lower() not in ARCHIVOS_A_IGNORAR), key=lambda p: p.name.casefold())
+    if not archivos:
+        print(f"No hay archivos TXT para consolidar en {origen}")
+        return []
 
-    if not os.path.exists(carpeta_destino):
-        os.makedirs(carpeta_destino)
+    destino.mkdir(parents=True, exist_ok=True)
+    creados = []
+    partes = []
+    palabras_tomo = 0
+    fuentes_tomo = 0
 
-    # Buscar solo los archivos .txt ya limpios (orden alfabético para que sea reproducible)
-    archivos_txt = sorted(f for f in os.listdir(carpeta_origen) if f.endswith('.txt'))
+    def guardar():
+        nonlocal partes, palabras_tomo, fuentes_tomo
+        if not partes:
+            return
+        ruta = destino / f"{base}_{len(creados) + 1}.txt"
+        temporal = None
+        try:
+            with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=destino, suffix=".tmp", delete=False) as f:
+                temporal = Path(f.name)
+                f.write("".join(partes).lstrip() + "\n")
+            temporal.replace(ruta)
+        finally:
+            if temporal is not None and temporal.exists():
+                temporal.unlink()
+        cuenta_real = len(ruta.read_text(encoding="utf-8").split())
+        assert cuenta_real <= limite_palabras_por_lote, "Se ha superado el límite configurado"
+        creados.append(ruta)
+        print(f"{ruta.name}: {cuenta_real:,} palabras, {fuentes_tomo} fragmentos")
+        partes = []
+        palabras_tomo = 0
+        fuentes_tomo = 0
 
-    if not archivos_txt:
-        print(f"No se encontraron archivos .txt en '{carpeta_origen}' para consolidar.")
-        return
+    def agregar(texto, encabezado):
+        nonlocal palabras_tomo, fuentes_tomo
+        n = len(encabezado.split()) + len(texto.split())
+        if n > limite_palabras_por_lote:
+            raise ValueError("Un fragmento supera el límite configurado")
+        if palabras_tomo + n > limite_palabras_por_lote:
+            guardar()
+        partes.append(encabezado + texto)
+        palabras_tomo += n
+        fuentes_tomo += 1
 
-    lote_actual = 1
-    contador_videos_lote = 0
-    palabras_lote = 0
-    texto_consolidado = ""
-    total_lotes_creados = []
+    for archivo in archivos:
+        contenido = archivo.read_text(encoding="utf-8-sig").strip()
+        if not contenido:
+            print(f"Omitido (vacío): {archivo.name}")
+            continue
+        encabezado = _encabezado(archivo.stem)
+        palabras = contenido.split()
+        if len(palabras) + len(encabezado.split()) <= limite_palabras_por_lote:
+            agregar(contenido, encabezado)
+            continue
 
-    print(f"Empezando a empaquetar {len(archivos_txt)} archivos "
-          f"(límite: {limite_palabras_por_lote:,} palabras por lote)...")
+        if partes:
+            guardar()
+        comienzo = 0
+        parte = 1
+        while comienzo < len(palabras):
+            cabecera = _encabezado(archivo.stem, parte)
+            capacidad = limite_palabras_por_lote - len(cabecera.split())
+            if capacidad <= 0:
+                raise ValueError("Límite demasiado pequeño para incluir el nombre de la fuente")
+            trozo = " ".join(palabras[comienzo:comienzo + capacidad])
+            agregar(trozo, cabecera)
+            comienzo += capacidad
+            parte += 1
 
-    def guardar_lote(numero_lote, texto, num_archivos, num_palabras):
-        nombre_salida = os.path.join(carpeta_destino, f"{nombre_base}_{numero_lote}.txt")
-        with open(nombre_salida, 'w', encoding='utf-8') as f_out:
-            f_out.write(texto)
-        print(f"Guardado: {nombre_salida} ({num_archivos} archivos, {num_palabras:,} palabras)")
-        total_lotes_creados.append(nombre_salida)
-
-    for archivo in archivos_txt:
-        ruta_archivo = os.path.join(carpeta_origen, archivo)
-
-        with open(ruta_archivo, 'r', encoding='utf-8') as f:
-            contenido = f.read()
-
-        palabras_archivo = len(contenido.split())
-
-        if palabras_archivo > limite_palabras_por_lote:
-            print(f"⚠️  Aviso: '{archivo}' tiene {palabras_archivo:,} palabras él solo, "
-                  f"por encima del límite por lote. Se guardará en su propio tomo.")
-
-        # Si añadir este archivo se pasa del límite, cerramos el lote actual primero
-        if palabras_lote > 0 and (palabras_lote + palabras_archivo) > limite_palabras_por_lote:
-            guardar_lote(lote_actual, texto_consolidado, contador_videos_lote, palabras_lote)
-            lote_actual += 1
-            contador_videos_lote = 0
-            palabras_lote = 0
-            texto_consolidado = ""
-
-        # Añadir un separador claro con el nombre del archivo original para que la IA lo cite bien
-        texto_consolidado += f"\n\n=========================================\n"
-        texto_consolidado += f"FUENTE: {archivo.replace('.txt', '')}\n"
-        texto_consolidado += f"=========================================\n\n"
-        texto_consolidado += contenido
-
-        contador_videos_lote += 1
-        palabras_lote += palabras_archivo
-
-    if contador_videos_lote > 0:
-        guardar_lote(lote_actual, texto_consolidado, contador_videos_lote, palabras_lote)
-
-    print(f"\n¡Listo! Se generaron {len(total_lotes_creados)} archivos en '{carpeta_destino}'.")
-
-    if len(total_lotes_creados) > 50:
-        print(f"⚠️  Atención: se generaron {len(total_lotes_creados)} archivos, por encima del límite "
-              f"de 50 fuentes del plan gratuito de NotebookLM. Opciones: reparte los tomos en varios "
-              f"notebooks, o sube 'limite_palabras_por_lote' (nunca por encima de 500.000, el máximo real de NotebookLM).")
-    else:
-        print("Estás dentro del límite de 50 fuentes del plan gratuito de NotebookLM.")
-
-
-def pedir_datos_interactivos():
-    """Pregunta los datos por pantalla cuando no se pasan como argumentos."""
-    print("=== Consolidador de transcripciones para NotebookLM ===\n")
-    carpeta_origen = input("Carpeta con los .txt sueltos a consolidar: ").strip()
-
-    carpeta_destino = input(
-        "Carpeta donde guardar los tomos consolidados (Enter para 'notebooklm_listo'): "
-    ).strip()
-
-    limite_input = input(
-        "Límite de palabras por tomo (Enter para 450.000, máximo recomendado 450.000-500.000): "
-    ).strip()
-    limite_palabras = int(limite_input) if limite_input.isdigit() else 450000
-
-    nombre_base = input(
-        "Nombre para los tomos, ej. 'MiCanal' (Enter para usarlo según la carpeta de origen): "
-    ).strip()
-
-    return carpeta_origen, (carpeta_destino or None), limite_palabras, (nombre_base or None)
+    guardar()
+    patron = re.compile(rf"^{re.escape(base)}_(\d+)\.txt$", re.IGNORECASE)
+    for archivo in destino.iterdir():
+        if archivo.is_file() and patron.fullmatch(archivo.name) and archivo not in creados:
+            archivo.unlink()
+    print(f"Tomos generados: {len(creados)} en {destino}")
+    return creados
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Consolida archivos .txt en megarchivos aptos para subir a NotebookLM."
-    )
-    parser.add_argument('-o', '--origen', help="Carpeta con los .txt sueltos a consolidar")
-    parser.add_argument('-d', '--destino', help="Carpeta donde guardar los tomos consolidados")
-    parser.add_argument(
-        '-l', '--limite', type=int, default=None,
-        help="Límite de palabras por tomo (por defecto: 450000)"
-    )
-    parser.add_argument('-n', '--nombre', help="Prefijo para nombrar los tomos generados")
-    args = parser.parse_args()
-
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Agrupa TXT sin superar el límite de palabras por tomo.")
+    parser.add_argument("-o", "--origen", help="Carpeta con TXT individuales")
+    parser.add_argument("-d", "--destino", help="Carpeta de salida (notebooklm_listo)")
+    parser.add_argument("-l", "--limite", type=int, default=None, help="Máximo de palabras por tomo (450000)")
+    parser.add_argument("-n", "--nombre", help="Prefijo del nombre de los tomos")
+    args = parser.parse_args(argv)
     if args.origen:
-        carpeta_origen = args.origen
-        carpeta_destino = args.destino
-        limite_palabras = args.limite or 450000
-        nombre_base = args.nombre
+        origen, destino, limite, nombre = args.origen, args.destino, args.limite or LIMITE_PREDETERMINADO, args.nombre
     else:
-        carpeta_origen, carpeta_destino, limite_palabras, nombre_base = pedir_datos_interactivos()
-
-    if not carpeta_origen:
-        print("No se ha indicado ninguna carpeta de origen. Saliendo.")
-        return
-
-    consolidar_textos(carpeta_origen, carpeta_destino, limite_palabras, nombre_base)
+        origen = input("Carpeta con los TXT: ").strip()
+        destino = input("Carpeta de salida (Enter = notebooklm_listo): ").strip() or None
+        limite_txt = input("Límite de palabras (Enter = 450000): ").strip()
+        nombre = input("Prefijo de tomos (Enter = automático): ").strip() or None
+        try:
+            limite = int(limite_txt) if limite_txt else LIMITE_PREDETERMINADO
+        except ValueError:
+            print("Error: introduce un número entero", file=sys.stderr)
+            return 1
+    try:
+        consolidar_textos(origen, destino, limite, nombre)
+        return 0
+    except (OSError, UnicodeError, ValueError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
