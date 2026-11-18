@@ -6,6 +6,7 @@ Files are created atomically without overwriting an existing user database.
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 import json
 import os
 from pathlib import Path
@@ -26,7 +27,7 @@ def _read_connection(source: Path) -> sqlite3.Connection:
 def verify_database(source: str | Path) -> dict:
     """Check SQLite integrity, schema compatibility, and row counts."""
     source = Path(source).expanduser().resolve()
-    with _read_connection(source) as conn:
+    with closing(_read_connection(source)) as conn:
         result = conn.execute("PRAGMA integrity_check").fetchone()
         if not result or result[0] != "ok":
             raise ValueError(f"SQLite integrity_check failed: {result}")
@@ -65,8 +66,10 @@ def _atomic_sqlite_copy(source: Path, destination: Path) -> Path:
             temporary = Path(tmp.name)
         # No writes to the active database: sqlite3 handles a consistent snapshot,
         # including transactions not yet checkpointed from WAL.
-        with _read_connection(source) as input_db, sqlite3.connect(temporary, timeout=30) as output_db:
-            input_db.backup(output_db, pages=128, sleep=0.1)
+        with closing(_read_connection(source)) as input_db:
+            with closing(sqlite3.connect(temporary, timeout=30)) as output_db:
+                input_db.backup(output_db, pages=128, sleep=0.1)
+                output_db.commit()
         verify_database(temporary)
         # Hardlink publishes the fully validated file, atomically and without replacing
         # any existing destination. Both paths are on the same filesystem.
