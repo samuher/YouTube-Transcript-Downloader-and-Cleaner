@@ -42,6 +42,60 @@ También acepta un enlace a un vídeo individual (`watch?v=...` o `youtu.be/...`
 
 Cada TXT incluye el ID para evitar colisiones: `Título [abcdefghijk].es.txt`. El archivo oculto `.transcripciones_index.json` registra los vídeos descargados correctamente para evitar procesarlos dos veces. Los vídeos sin subtítulos no se marcan como completados y pueden reintentarse.
 
+## Descargas largas: pausas, reintentos y reanudación
+
+Para descargar **todos los vídeos de la pestaña /videos**, ejecuta sin `--max-videos`. Un enlace a `/shorts` o `/streams` procesa únicamente esa pestaña. El programa descarga los subtítulos accesibles, **no transcribe audio** ni garantiza acceso a todos los vídeos.
+
+**Prueba inicial (los primeros cinco vídeos):**
+
+```bash
+python descargar_transcripciones.py -c "https://www.youtube.com/@NombreDelCanal" -i es,en --max-videos 5
+```
+
+Luego ejecuta el mismo comando **sin** `--max-videos` para recorrer todo el canal: omite los vídeos completados. `--max-videos` selecciona siempre los *primeros N*, no sirve para saltar a los siguientes N.
+
+**Ejemplo de ejecución más pausada:**
+
+```bash
+python descargar_transcripciones.py -c "https://www.youtube.com/@NombreDelCanal" -i es,en --pausa-min 5 --pausa-max 12 --reintentos 3
+```
+
+| Opción | Valor inicial | Función |
+| --- | --- | --- |
+| `--pausa-min` / `--pausa-max` | 3 / 7 segundos | Espera aleatoria entre solicitudes de vídeos nuevos |
+| `--reintentos` | 2 | Reintentos adicionales ante 429, 5xx o errores temporales de red |
+| `--espera-inicial` | 30 segundos | Primera espera tras un error temporal; crece progresivamente |
+| `--espera-maxima` | 300 segundos | Límite de espera progresiva |
+| `--espera-subtitulos` | 1 segundo | Espera de yt-dlp antes de solicitar cada subtítulo |
+| `--forzar` | Desactivado | Vuelve a descargar vídeos completados |
+| `--navegador` | Desactivado | Lee la sesión de un navegador local |
+| `--cookies` | Desactivado | Usa un archivo Netscape `cookies.txt` local |
+
+Si persisten errores **429**, aparece **403** o se requiere identificación por posible detección de bot, el programa **se detiene** en vez de enviar solicitudes al resto del canal. Los archivos descargados no se eliminan; al volver a ejecutar con la misma carpeta, se omiten los completados. No reinicies repetidamente mientras exista un bloqueo.
+
+Dentro de la carpeta de salida encontrarás:
+
+- `.transcripciones_index.json`: estado de las descargas completadas (no se guardan contraseñas).
+- `reporte_descargas.csv`: historial acumulativo por vídeo, con fecha, resultado, número de intentos y archivos. Los estados incluyen `descargado`, `ya_descargado`, `sin_subtitulos`, `error`, `bloqueado` e `interrumpido`.
+
+Un vídeo sin subtítulos **no** se marca como completado y podrá volver a intentarse. El programa detecta también errores 429/403 que yt-dlp comunica como advertencias, sin lanzar una excepción.
+
+### Uso opcional de tu sesión de YouTube
+
+No necesitas iniciar sesión para subtítulos públicos. Si tienes acceso legítimo mediante tu navegador y decides usar su sesión:
+
+```bash
+python descargar_transcripciones.py -c "https://www.youtube.com/@NombreDelCanal" -i es --navegador brave
+```
+
+También puedes indicar un archivo de cookies en formato Netscape:
+
+```bash
+python descargar_transcripciones.py -c "https://www.youtube.com/@NombreDelCanal" -i es --cookies "cookies.txt"
+```
+
+No se pueden combinar las dos opciones. **Las cookies son credenciales sensibles:** nunca las subas al repositorio ni las compartas. Usar una cuenta puede suponer restricciones o riesgos para ella. Consulta las [notas de YouTube de yt-dlp](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#youtube) y su [guía de cookies](https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp). Las cookies no garantizan resolver los errores 403/429 ni las comprobaciones de bot.
+
 ## Preparar tomos para NotebookLM
 
 ```bash
