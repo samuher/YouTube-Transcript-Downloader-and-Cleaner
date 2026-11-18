@@ -42,6 +42,32 @@ Individual video links are supported. Run without `-c` for interactive prompts.
 
 Filenames include video IDs (e.g., `Video [abcdefghijk].en.txt`) to prevent collisions. A hidden `.transcripciones_index.json` records successful downloads so they are skipped on subsequent runs. Videos with no available captions are retryable.
 
+## Long-running channels, retries and resume
+
+Run without `--max-videos` to process all videos in the **/videos tab**. This tool downloads existing captions, not audio transcription. Shorts and streams require their own tab URLs.
+
+```bash
+python descargar_transcripciones.py -c "https://www.youtube.com/@ChannelName" -i en --max-videos 5
+python descargar_transcripciones.py -c "https://www.youtube.com/@ChannelName" -i en
+```
+
+The second command skips already completed videos. `--max-videos` always selects the *first* N videos, not the next N.
+
+- Default pause between new videos: **3–7 seconds**, configurable via `--pausa-min` and `--pausa-max`.
+- Temporary 429/5xx/network errors: **2 extra retries** (`--reintentos`) with increasing delays (around 30 and 60 seconds, adjustable with `--espera-inicial` and `--espera-maxima`).
+- Persistent 429, 403, bot checks or login requirements: **stop the run** rather than repeatedly requesting later videos.
+- Completed TXT files are preserved. `.transcripciones_index.json` stores successful video IDs; `reporte_descargas.csv` appends attempt date, status, and files. Re-run with the same directory to resume; missing captions remain retryable.
+
+Optional local session for legitimate access:
+
+```bash
+python descargar_transcripciones.py -c "https://www.youtube.com/@ChannelName" --navegador brave
+# Or use a local Netscape-format cookies file (not both):
+python descargar_transcripciones.py -c "https://www.youtube.com/@ChannelName" --cookies "cookies.txt"
+```
+
+**Cookies are sensitive credentials. Never commit or share them.** Using an account may carry account risk. See the [yt-dlp YouTube notes](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#youtube) and [cookie FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp). Cookies do not guarantee avoiding rate limits or bot checks; if blocked, stop requesting.
+
 ## Combine for NotebookLM
 
 ```bash
