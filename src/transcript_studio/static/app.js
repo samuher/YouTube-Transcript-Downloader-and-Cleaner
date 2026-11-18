@@ -37,7 +37,7 @@ function elt(tag, attrs = {}, ...children) {
   return element;
 }
 function fmtStatus(status) {
-  return ({ queued: "En cola", running: "Descargando", paused: "Pausado", completed: "Completado", failed: "Error", blocked: "Bloqueado", cancelled: "Cancelado" })[status] || status;
+  return ({ queued: "En cola", running: "Descargando", paused: "Pausado", completed: "Completado", partial: "Incompleto", failed: "Error", blocked: "Bloqueado", cancelled: "Cancelado" })[status] || status;
 }
 function switchTab(tab) {
   if (!["dashboard", "jobs", "library", "export"].includes(tab)) return;
@@ -62,7 +62,7 @@ function cardForJob(job) {
   const actions = elt("div", { class:"job-actions" });
   let names = [];
   if (["running", "queued"].includes(job.status)) names = [["pause", "Pausar"], ["cancel", "Cancelar"]];
-  if (["paused", "blocked", "failed"].includes(job.status)) names = [["resume", "Reanudar"], ["cancel", "Cancelar"]];
+  if (["paused", "blocked", "failed", "partial"].includes(job.status)) names = [["resume", "Reanudar"], ["cancel", "Cancelar"]];
   for (const [action, label] of names) {
     actions.append(elt("button", { text:label, onClick: async () => {
       try { await json(`/api/jobs/${job.id}/${action}`, { method:"POST" }); toast(`Trabajo: ${label.toLowerCase()}`); await refreshJobs(); }
