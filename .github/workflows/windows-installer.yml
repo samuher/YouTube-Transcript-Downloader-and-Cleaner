@@ -47,7 +47,7 @@ jobs:
             ForEach-Object { "$($_.Hash)  $(Split-Path $_.Path -Leaf)" } |
             Out-File 'dist/installer/SHA256SUMS.txt' -Encoding ascii
       - name: Upload unsigned preview for review only
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: transcript-studio-windows-preview-unsigned
           path: |
